@@ -128,10 +128,10 @@ export function renderPlan(planName, planDaysData) {
 export function createActivityElements(activity) {
     const elements = [];
     const activityId = activity.id || `act-${Date.now()}`;
-
-    // Day.jsを使って日付を処理
-    const actStart = dayjs.tz(`${activity.startDate} ${activity.startTime || '00:00'}`, 'YYYY-MM-DD HH:mm');
-    const actEnd = dayjs.tz(`${activity.endDate} ${activity.endTime || '00:00'}`, 'YYYY-MM-DD HH:mm');
+    
+    const timezone = dayjs.tz.guess();
+    const actStart = dayjs.tz(`${activity.startDate} ${activity.startTime || '00:00'}`, 'YYYY-MM-DD HH:mm', timezone);
+    const actEnd = dayjs.tz(`${activity.endDate} ${activity.endTime || '00:00'}`, 'YYYY-MM-DD HH:mm', timezone);
 
     let currentDay = actStart.startOf('day');
 
@@ -448,8 +448,9 @@ export function updateSummary() {
     }, {}));
 
     uniqueActivities.forEach(activity => {
-        const start = dayjs.tz(`${activity.startDate} ${activity.startTime}`, 'YYYY-MM-DD HH:mm');
-        const end = dayjs.tz(`${activity.endDate} ${activity.endTime}`, 'YYYY-MM-DD HH:mm');
+        const timezone = dayjs.tz.guess();
+        const start = dayjs.tz(`${activity.startDate} ${activity.startTime}`, 'YYYY-MM-DD HH:mm', timezone);
+        const end = dayjs.tz(`${activity.endDate} ${activity.endTime}`, 'YYYY-MM-DD HH:mm', timezone);
         const duration = end.diff(start, 'minute');
 
         if (duration > 0) {

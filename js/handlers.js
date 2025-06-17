@@ -241,8 +241,9 @@ export function handleDropOnTimeline(e) {
     let newStartMinutesOnDropDay = (relativeY / timelineRect.height) * totalMinutesInDay;
     newStartMinutesOnDropDay = Math.round(newStartMinutesOnDropDay / snapMinutes) * snapMinutes;
 
-    const originalStartDateTime = dayjs.tz(`${state.draggingItem.dataset.startDate} ${state.draggingItem.dataset.startTime}`, 'YYYY-MM-DD HH:mm');
-    const originalEndDateTime = dayjs.tz(`${state.draggingItem.dataset.endDate} ${state.draggingItem.dataset.endTime}`, 'YYYY-MM-DD HH:mm');
+    const timezone = dayjs.tz.guess();
+    const originalStartDateTime = dayjs.tz(`${state.draggingItem.dataset.startDate} ${state.draggingItem.dataset.startTime}`, 'YYYY-MM-DD HH:mm', timezone);
+    const originalEndDateTime = dayjs.tz(`${state.draggingItem.dataset.endDate} ${state.draggingItem.dataset.endTime}`, 'YYYY-MM-DD HH:mm', timezone);
     const durationMs = originalEndDateTime.diff(originalStartDateTime);
 
     const newStartDateTime = dayjs(dropIsoDate).add(newStartMinutesOnDropDay, 'minute');
@@ -317,9 +318,10 @@ function stopResize(e) {
     const totalMinutesInDay = 24 * 60;
     const snapMinutes = e.shiftKey ? 1 : 15;
     
+    const timezone = dayjs.tz.guess();
     const currentDayIso = state.resizingItem.closest('.day-plan').dataset.isoDate;
-    let startDateTime = dayjs.tz(`${state.resizingItem.dataset.startDate} ${state.resizingItem.dataset.startTime}`, 'YYYY-MM-DD HH:mm');
-    let endDateTime = dayjs.tz(`${state.resizingItem.dataset.endDate} ${state.resizingItem.dataset.endTime}`, 'YYYY-MM-DD HH:mm');
+    let startDateTime = dayjs.tz(`${state.resizingItem.dataset.startDate} ${state.resizingItem.dataset.startTime}`, 'YYYY-MM-DD HH:mm', timezone);
+    let endDateTime = dayjs.tz(`${state.resizingItem.dataset.endDate} ${state.resizingItem.dataset.endTime}`, 'YYYY-MM-DD HH:mm', timezone);
 
     if (state.resizingDirection === 'bottom') {
         const itemBottomPosition = state.resizingItem.offsetTop + state.resizingItem.offsetHeight;
@@ -439,9 +441,9 @@ function handleDocumentMouseUp(e) {
 export function saveModalChanges() {
     modalDateTimeError.textContent = '';
     
-    // Day.jsを使ってバリデーション
-    const startDateTime = dayjs.tz(`${modalStartDate.value} ${modalStartTime.value}`, 'YYYY-MM-DD HH:mm');
-    const endDateTime = dayjs.tz(`${modalEndDate.value} ${modalEndTime.value}`, 'YYYY-MM-DD HH:mm');
+    const timezone = dayjs.tz.guess();
+    const startDateTime = dayjs.tz(`${modalStartDate.value} ${modalStartTime.value}`, 'YYYY-MM-DD HH:mm', timezone);
+    const endDateTime = dayjs.tz(`${modalEndDate.value} ${modalEndTime.value}`, 'YYYY-MM-DD HH:mm', timezone);
 
     if (!startDateTime.isValid() || !endDateTime.isValid()) {
         modalDateTimeError.textContent = '有効な日時を入力してください。';
@@ -528,8 +530,9 @@ export function handleSaveCategories() {
 }
 
 export function handleDuplicateItem(itemToDuplicate) {
-    const start = dayjs.tz(`${itemToDuplicate.dataset.startDate} ${itemToDuplicate.dataset.startTime}`, 'YYYY-MM-DD HH:mm');
-    const end = dayjs.tz(`${itemToDuplicate.dataset.endDate} ${itemToDuplicate.dataset.endTime}`, 'YYYY-MM-DD HH:mm');
+    const timezone = dayjs.tz.guess();
+    const start = dayjs.tz(`${itemToDuplicate.dataset.startDate} ${itemToDuplicate.dataset.startTime}`, 'YYYY-MM-DD HH:mm', timezone);
+    const end = dayjs.tz(`${itemToDuplicate.dataset.endDate} ${itemToDuplicate.dataset.endTime}`, 'YYYY-MM-DD HH:mm', timezone);
     const duration = end.diff(start);
 
     const newStart = end;
