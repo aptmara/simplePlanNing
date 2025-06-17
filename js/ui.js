@@ -68,8 +68,8 @@ export function renderPlan(planName, planDaysData) {
             isoDate = day.isoDate;
         } else {
             const parsableStr = day.date.split('(')[0].replace('年', '-').replace('月', '-').replace('日', '');
-            const dateObj = new Date(parsableStr);
-            isoDate = dateObj.toISOString().slice(0, 10);
+            // Day.jsを使って日付をパース
+            isoDate = dayjs(parsableStr, 'YYYY-M-D').format('YYYY-MM-DD');
         }
         dayDiv.dataset.isoDate = isoDate;
 
@@ -129,38 +129,45 @@ export function createActivityElements(activity) {
     const elements = [];
     const activityId = activity.id || `act-${Date.now()}`;
 
-    const actStart = new Date(`${activity.startDate}T${activity.startTime || '00:00'}`);
-    const actEnd = new Date(`${activity.endDate}T${activity.endTime || '00:00'}`);
+    // Day.jsを使って日付を処理
+    const actStart = dayjs.tz(`${activity.startDate} ${activity.startTime || '00:00'}`, 'YYYY-MM-DD HH:mm');
+    const actEnd = dayjs.tz(`${activity.endDate} ${activity.endTime || '00:00'}`, 'YYYY-MM-DD HH:mm');
 
-    const loopStartDate = new Date(actStart);
-    loopStartDate.setHours(0, 0, 0, 0);
+    let currentDay = actStart.startOf('day');
 
-    for (let d = loopStartDate; d.getTime() < actEnd.getTime(); d.setDate(d.getDate() + 1)) {
-        const loopDayStart = new Date(d);
+    while (currentDay.isBefore(actEnd, 'day') || currentDay.isSame(actEnd, 'day')) {
+        // その日のアクティビティ区間（セグメント）を計算
+        const segmentStart = actStart.isAfter(currentDay) ? actStart : currentDay;
+        const nextDayStart = currentDay.add(1, 'day');
+        const segmentEnd = actEnd.isBefore(nextDayStart) ? actEnd : nextDayStart;
 
-        const segmentStart = new Date(Math.max(actStart.getTime(), loopDayStart.getTime()));
-        const nextDayStart = new Date(loopDayStart);
-        nextDayStart.setDate(nextDayStart.getDate() + 1);
-        const segmentEnd = new Date(Math.min(actEnd.getTime(), nextDayStart.getTime()));
+        // セグメントの長さが0以下の場合はスキップ
+        if (segmentStart.isSame(segmentEnd) || segmentStart.isAfter(segmentEnd)) {
+            currentDay = currentDay.add(1, 'day');
+            continue;
+        }
 
-        if (segmentStart.getTime() >= segmentEnd.getTime()) continue;
+        const isFirstDay = segmentStart.isSame(actStart);
+        const isLastDay = segmentEnd.isSame(actEnd);
 
-        const isFirstDay = segmentStart.getTime() === actStart.getTime();
-        const isLastDay = segmentEnd.getTime() === actEnd.getTime();
+        // 終了時刻が00:00の場合、タイムライン上では前日の24:00として扱う
+        let endTimeString = segmentEnd.format('HH:mm');
+        if (endTimeString === '00:00' && segmentEnd.isAfter(segmentStart)) {
+            endTimeString = '24:00';
+        }
 
         const segmentData = {
             ...activity,
             id: activityId,
-            startTime: `${String(segmentStart.getHours()).padStart(2, '0')}:${String(segmentStart.getMinutes()).padStart(2, '0')}`,
-            endTime: `${String(segmentEnd.getHours()).padStart(2, '0')}:${String(segmentEnd.getMinutes()).padStart(2, '0')}`,
+            startTime: segmentStart.format('HH:mm'),
+            endTime: endTimeString,
         };
-        if (segmentData.endTime === '00:00' && segmentEnd.getTime() > segmentStart.getTime()) {
-            segmentData.endTime = '24:00';
-        }
 
         const listItem = createPlanItemElement(segmentData, { isFirstDay, isLastDay });
-        const isoDateString = loopDayStart.toISOString().slice(0, 10);
+        const isoDateString = currentDay.format('YYYY-MM-DD');
         elements.push({ element: listItem, isoDate: isoDateString });
+
+        currentDay = currentDay.add(1, 'day');
     }
     return elements;
 }
@@ -441,9 +448,10 @@ export function updateSummary() {
     }, {}));
 
     uniqueActivities.forEach(activity => {
-        const start = new Date(`${activity.startDate}T${activity.startTime}`);
-        const end = new Date(`${activity.endDate}T${activity.endTime}`);
-        const duration = (end - start) / (1000 * 60);
+        const start = dayjs.tz(`${activity.startDate} ${activity.startTime}`, 'YYYY-MM-DD HH:mm');
+        const end = dayjs.tz(`${activity.endDate} ${activity.endTime}`, 'YYYY-MM-DD HH:mm');
+        const duration = end.diff(start, 'minute');
+
         if (duration > 0) {
             totalPlanMinutes += duration;
             const catId = activity.category || 'none';

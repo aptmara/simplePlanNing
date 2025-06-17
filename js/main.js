@@ -53,6 +53,13 @@ export const summaryTotalTimeContainer = document.getElementById('summaryTotalTi
 
 // --- Main Execution ---
 document.addEventListener('DOMContentLoaded', () => {
+    // Day.jsの初期設定
+    dayjs.extend(window.dayjs_plugin_customParseFormat);
+    dayjs.extend(window.dayjs_plugin_utc);
+    dayjs.extend(window.dayjs_plugin_timezone);
+    // タイムゾーンをブラウザのデフォルトに設定
+    dayjs.tz.setDefault(dayjs.tz.guess());
+    
     initializeTheme();
     loadInitialData();
     setupEventListeners();

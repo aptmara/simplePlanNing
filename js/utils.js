@@ -10,9 +10,8 @@ export function timeToMinutes(timeString) {
 }
 
 export function minutesToTime(totalMinutes) {
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    // Day.jsを使って時刻をフォーマット
+    return dayjs().startOf('day').add(totalMinutes, 'minute').format('HH:mm');
 }
 
 export function darkenColor(hex, percent) {

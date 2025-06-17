@@ -213,9 +213,9 @@ export function handleDragOverTimeline(e) {
     const dropIsoDate = dropTimeline.closest('.day-plan').dataset.isoDate;
     let dateOffsetStr = '';
     if (originalIsoDate && dropIsoDate && originalIsoDate !== dropIsoDate) {
-        const d1 = new Date(originalIsoDate);
-        const d2 = new Date(dropIsoDate);
-        const dateOffset = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+        const d1 = dayjs(originalIsoDate);
+        const d2 = dayjs(dropIsoDate);
+        const dateOffset = d2.diff(d1, 'day');
         if (dateOffset !== 0) {
             dateOffsetStr = ` <span style="font-weight: normal; opacity: 0.8;">(${dateOffset > 0 ? '+' : ''}${dateOffset}日)</span>`;
         }
@@ -240,20 +240,21 @@ export function handleDropOnTimeline(e) {
     const snapMinutes = e.shiftKey ? 1 : 15;
     let newStartMinutesOnDropDay = (relativeY / timelineRect.height) * totalMinutesInDay;
     newStartMinutesOnDropDay = Math.round(newStartMinutesOnDropDay / snapMinutes) * snapMinutes;
-    const originalStartDateTime = new Date(`${state.draggingItem.dataset.startDate}T${state.draggingItem.dataset.startTime}`);
-    const originalEndDateTime = new Date(`${state.draggingItem.dataset.endDate}T${state.draggingItem.dataset.endTime}`);
-    const durationMs = originalEndDateTime.getTime() - originalStartDateTime.getTime();
-    const newStartDateTime = new Date(dropIsoDate + 'T00:00:00');
-    newStartDateTime.setMinutes(newStartMinutesOnDropDay);
-    const newEndDateTime = new Date(newStartDateTime.getTime() + durationMs);
+
+    const originalStartDateTime = dayjs.tz(`${state.draggingItem.dataset.startDate} ${state.draggingItem.dataset.startTime}`, 'YYYY-MM-DD HH:mm');
+    const originalEndDateTime = dayjs.tz(`${state.draggingItem.dataset.endDate} ${state.draggingItem.dataset.endTime}`, 'YYYY-MM-DD HH:mm');
+    const durationMs = originalEndDateTime.diff(originalStartDateTime);
+
+    const newStartDateTime = dayjs(dropIsoDate).add(newStartMinutesOnDropDay, 'minute');
+    const newEndDateTime = newStartDateTime.add(durationMs, 'ms');
 
     const updatedActivity = {
         id: activityId,
         name: state.draggingItem.dataset.name,
-        startDate: newStartDateTime.toISOString().slice(0, 10),
-        startTime: newStartDateTime.toTimeString().slice(0, 5),
-        endDate: newEndDateTime.toISOString().slice(0, 10),
-        endTime: newEndDateTime.toTimeString().slice(0, 5),
+        startDate: newStartDateTime.format('YYYY-MM-DD'),
+        startTime: newStartDateTime.format('HH:mm'),
+        endDate: newEndDateTime.format('YYYY-MM-DD'),
+        endTime: newEndDateTime.format('HH:mm'),
         category: state.draggingItem.dataset.category,
         notes: state.draggingItem.dataset.notes,
         allowOverlap: state.draggingItem.dataset.allowOverlap === 'true'
@@ -315,25 +316,22 @@ function stopResize(e) {
     const timelineHeight = timeline.offsetHeight;
     const totalMinutesInDay = 24 * 60;
     const snapMinutes = e.shiftKey ? 1 : 15;
-
-    let startDateTime = new Date(`${state.resizingItem.dataset.startDate}T${state.resizingItem.dataset.startTime}`);
-    let endDateTime = new Date(`${state.resizingItem.dataset.endDate}T${state.resizingItem.dataset.endTime}`);
+    
+    const currentDayIso = state.resizingItem.closest('.day-plan').dataset.isoDate;
+    let startDateTime = dayjs.tz(`${state.resizingItem.dataset.startDate} ${state.resizingItem.dataset.startTime}`, 'YYYY-MM-DD HH:mm');
+    let endDateTime = dayjs.tz(`${state.resizingItem.dataset.endDate} ${state.resizingItem.dataset.endTime}`, 'YYYY-MM-DD HH:mm');
 
     if (state.resizingDirection === 'bottom') {
         const itemBottomPosition = state.resizingItem.offsetTop + state.resizingItem.offsetHeight;
         let endMinutes = Math.round(((itemBottomPosition / timelineHeight) * totalMinutesInDay) / snapMinutes) * snapMinutes;
-        const currentDay = new Date(state.resizingItem.closest('.day-plan').dataset.isoDate + 'T00:00:00');
-        endDateTime = new Date(currentDay);
-        endDateTime.setHours(Math.floor(endMinutes / 60), endMinutes % 60, 0, 0);
+        endDateTime = dayjs(currentDayIso).add(endMinutes, 'minute');
     } else { // Top resize
         const itemTopPosition = state.resizingItem.offsetTop;
         let startMinutes = Math.round(((itemTopPosition / timelineHeight) * totalMinutesInDay) / snapMinutes) * snapMinutes;
-        const currentDay = new Date(state.resizingItem.closest('.day-plan').dataset.isoDate + 'T00:00:00');
-        startDateTime = new Date(currentDay);
-        startDateTime.setHours(Math.floor(startMinutes / 60), startMinutes % 60, 0, 0);
+        startDateTime = dayjs(currentDayIso).add(startMinutes, 'minute');
     }
-
-    if (startDateTime.getTime() >= endDateTime.getTime()) {
+    
+    if (startDateTime.isSame(endDateTime) || startDateTime.isAfter(endDateTime)) {
         loadPlan(state.getCurrentPlanObject());
         return;
     }
@@ -341,10 +339,10 @@ function stopResize(e) {
     const updatedActivity = {
         id: activityId,
         name: state.resizingItem.dataset.name,
-        startDate: startDateTime.toISOString().slice(0, 10),
-        startTime: startDateTime.toTimeString().slice(0, 5),
-        endDate: endDateTime.toISOString().slice(0, 10),
-        endTime: endDateTime.toTimeString().slice(0, 5),
+        startDate: startDateTime.format('YYYY-MM-DD'),
+        startTime: startDateTime.format('HH:mm'),
+        endDate: endDateTime.format('YYYY-MM-DD'),
+        endTime: endDateTime.format('HH:mm'),
         category: state.resizingItem.dataset.category,
         notes: state.resizingItem.dataset.notes,
         allowOverlap: state.resizingItem.dataset.allowOverlap === 'true'
@@ -440,16 +438,20 @@ function handleDocumentMouseUp(e) {
 // --- Modal and Category Handlers ---
 export function saveModalChanges() {
     modalDateTimeError.textContent = '';
-    const startDateTime = new Date(`${modalStartDate.value}T${modalStartTime.value}`);
-    const endDateTime = new Date(`${modalEndDate.value}T${modalEndTime.value}`);
-    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+    
+    // Day.jsを使ってバリデーション
+    const startDateTime = dayjs.tz(`${modalStartDate.value} ${modalStartTime.value}`, 'YYYY-MM-DD HH:mm');
+    const endDateTime = dayjs.tz(`${modalEndDate.value} ${modalEndTime.value}`, 'YYYY-MM-DD HH:mm');
+
+    if (!startDateTime.isValid() || !endDateTime.isValid()) {
         modalDateTimeError.textContent = '有効な日時を入力してください。';
         return;
     }
-    if (startDateTime.getTime() >= endDateTime.getTime()) {
+    if (startDateTime.isSame(endDateTime) || startDateTime.isAfter(endDateTime)) {
         modalDateTimeError.textContent = '終了日時は開始日時より後に設定してください。';
         return;
     }
+    
     const activityId = state.currentEditingItem ? state.currentEditingItem.dataset.activityId : `act-${Date.now()}`;
     document.querySelectorAll(`[data-activity-id="${activityId}"]`).forEach(el => el.remove());
     const activityData = {
@@ -526,17 +528,19 @@ export function handleSaveCategories() {
 }
 
 export function handleDuplicateItem(itemToDuplicate) {
-    const start = new Date(`${itemToDuplicate.dataset.startDate}T${itemToDuplicate.dataset.startTime}`);
-    const end = new Date(`${itemToDuplicate.dataset.endDate}T${itemToDuplicate.dataset.endTime}`);
-    const duration = end - start;
-    const newStart = new Date(end.getTime());
-    const newEnd = new Date(newStart.getTime() + duration);
+    const start = dayjs.tz(`${itemToDuplicate.dataset.startDate} ${itemToDuplicate.dataset.startTime}`, 'YYYY-MM-DD HH:mm');
+    const end = dayjs.tz(`${itemToDuplicate.dataset.endDate} ${itemToDuplicate.dataset.endTime}`, 'YYYY-MM-DD HH:mm');
+    const duration = end.diff(start);
+
+    const newStart = end;
+    const newEnd = newStart.add(duration, 'ms');
+
     const duplicatedActivity = {
         name: `${itemToDuplicate.dataset.name} (コピー)`,
-        startDate: newStart.toISOString().slice(0, 10),
-        startTime: newStart.toTimeString().slice(0, 5),
-        endDate: newEnd.toISOString().slice(0, 10),
-        endTime: newEnd.toTimeString().slice(0, 5),
+        startDate: newStart.format('YYYY-MM-DD'),
+        startTime: newStart.format('HH:mm'),
+        endDate: newEnd.format('YYYY-MM-DD'),
+        endTime: newEnd.format('HH:mm'),
         category: itemToDuplicate.dataset.category,
         notes: itemToDuplicate.dataset.notes,
         allowOverlap: itemToDuplicate.dataset.allowOverlap
@@ -553,13 +557,13 @@ export function copyPlanAsText() {
         return;
     }
     let text = `${planObject.name}\n${"=".repeat(planObject.name.length)}\n\n`;
-    const allActivities = planObject.planData.flatMap(d => d.activities).sort((a, b) => new Date(`${a.startDate}T${a.startTime}`) - new Date(`${b.startDate}T${b.startTime}`));
+    const allActivities = planObject.planData.flatMap(d => d.activities).sort((a, b) => dayjs(`${a.startDate} ${a.startTime}`).diff(dayjs(`${b.startDate} ${b.startTime}`)));
     const uniqueActivities = Object.values(allActivities.reduce((acc, cur) => { if (!acc[cur.id]) acc[cur.id] = cur; return acc; }, {}));
 
     let currentDateStr = '';
     uniqueActivities.forEach(activity => {
-        const activityStartDate = new Date(activity.startDate);
-        const formattedDate = activityStartDate.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+        const activityStartDate = dayjs(activity.startDate);
+        const formattedDate = activityStartDate.format('YYYY年M月D日 (ddd)');
 
         if (currentDateStr !== formattedDate) {
             currentDateStr = formattedDate;
