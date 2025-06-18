@@ -29,6 +29,7 @@ export const bodyElement = document.body;
 export const editModal = document.getElementById('editModal');
 export const closeModalButton = document.getElementById('closeModalButton');
 export const saveModalButton = document.getElementById('saveModalButton');
+export const deleteModalButton = document.getElementById('deleteModalButton');
 export const modalActivityName = document.getElementById('modalActivityName');
 export const modalStartDate = document.getElementById('modalStartDate');
 export const modalStartTime = document.getElementById('modalStartTime');
@@ -58,34 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
     dayjs.extend(window.dayjs_plugin_customParseFormat);
     dayjs.extend(window.dayjs_plugin_utc);
     dayjs.extend(window.dayjs_plugin_timezone);
-    // タイムゾーンをブラウザのデフォルトに設定
-    dayjs.tz.setDefault(dayjs.tz.guess());
     
     initializeTheme();
-    loadInitialData();
+    state.initializeState(); // Stateを初期化 (localStorageから復元)
+    ui.render(state.getAppState()); // 初期描画
     setupEventListeners();
 });
 
-function loadInitialData() {
-    handlers.loadPlanFromLocalStorage();
-    state.pushHistory(state.getCurrentPlanObject());
-    
-    // カテゴリデータの読み込み
-    const savedCategories = localStorage.getItem('planGeneratorCategories');
-    if (savedCategories) {
-        state.setCategories(JSON.parse(savedCategories));
-    } else {
-        state.setCategories([
-            { id: 'cat-1', name: '準備', color: '#ffc107' },
-            { id: 'cat-2', name: '食事', color: '#dc3545' },
-            { id: 'cat-3', name: '移動', color: '#17a2b8' },
-            { id: 'cat-4', name: '自由時間', color: '#28a745' },
-            { id: 'cat-5', name: 'タスク', color: '#6c757d' },
-        ]);
-        localStorage.setItem('planGeneratorCategories', JSON.stringify(state.categories));
-    }
-    ui.updateActivityCategoryDropdown();
-}
 
 function setupEventListeners() {
     planForm.addEventListener('submit', handlers.handleFormSubmit);
@@ -96,74 +76,44 @@ function setupEventListeners() {
     exportCsvButton.addEventListener('click', handlers.exportPlanAsCsv);
     exportPdfButton.addEventListener('click', handlers.exportPdfButtonClickHandler);
 
-    undoButton.addEventListener('click', () => {
-        const plan = state.undo();
-        if (plan) {
-            state.setIsRestoringFromHistory(true);
-            handlers.loadPlan(plan);
-            state.setIsRestoringFromHistory(false);
-            state.updateHistoryButtons();
-            ui.showNotification('元に戻しました', 'info');
-        }
-    });
-
-    redoButton.addEventListener('click', () => {
-        const plan = state.redo();
-        if (plan) {
-            state.setIsRestoringFromHistory(true);
-            handlers.loadPlan(plan);
-            state.setIsRestoringFromHistory(false);
-            state.updateHistoryButtons();
-            ui.showNotification('やり直しました', 'info');
-        }
-    });
+    undoButton.addEventListener('click', handlers.handleUndo);
+    redoButton.addEventListener('click', handlers.handleRedo);
 
     bodyElement.addEventListener('dragover', handlers.handleDragOverFile);
     bodyElement.addEventListener('dragleave', handlers.handleDragLeaveFile);
     bodyElement.addEventListener('drop', handlers.handleDropFile);
 
-    // キーボードショートカットの追加
+    // キーボードショートカット
     bodyElement.addEventListener('keydown', (e) => {
-        // テキスト入力中は何もしない
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
             return;
         }
 
-        // 複数選択アイテムの削除 (Delete or Backspace)
-        if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedItems.size > 0) {
-            e.preventDefault(); // ブラウザの「戻る」動作を防止
+        if ((e.key === 'Delete' || e.key === 'Backspace') && state.getAppState().ui.selectedActivityIds.size > 0) {
+            e.preventDefault();
             handlers.deleteSelectedItems();
         }
 
-        // Undo/Redo のショートカット (Ctrl/Cmd + Z/Y)
         if (e.ctrlKey || e.metaKey) {
             if (e.key === 'z') {
                 e.preventDefault();
-                undoButton.click();
+                handlers.handleUndo();
             } else if (e.key === 'y') {
                 e.preventDefault();
-                redoButton.click();
+                handlers.handleRedo();
             }
         }
     });
 
-    editModal.querySelector('#deleteModalButton').addEventListener('click', () => {
-        if (state.currentEditingItem) {
-            const activityId = state.currentEditingItem.dataset.activityId;
-            const activityName = state.currentEditingItem.dataset.name;
-            if (confirm(`アクティビティ「${activityName}」を削除しますか？`)) {
-                document.querySelectorAll(`[data-activity-id="${activityId}"]`).forEach(part => part.remove());
-                ui.closeModal();
-                handlers.savePlanToLocalStorage();
-            }
-        }
-    });
+    // モーダル関連
+    deleteModalButton.addEventListener('click', handlers.handleDeleteFromModal);
     closeModalButton.addEventListener('click', ui.closeModal);
     saveModalButton.addEventListener('click', handlers.saveModalChanges);
     editModal.addEventListener('click', (e) => {
         if (e.target === editModal) ui.closeModal();
     });
 
+    // カテゴリモーダル関連
     categorySettingsButton.addEventListener('click', ui.openCategoryModal);
     closeCategoryModalButton.addEventListener('click', ui.closeCategoryModal);
     categoryModal.addEventListener('click', (e) => {
