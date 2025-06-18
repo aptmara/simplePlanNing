@@ -3,14 +3,11 @@
  * 状態管理、データ操作、Undo/Redo
  * アプリケーションの唯一の状態(Single Source of Truth)を管理する
  */
-
 import { showNotification } from './ui.js';
 
 // --- State Variables ---
 const MAX_HISTORY = 50;
-
 let appState = {};
-
 let history = [];
 let historyIndex = -1;
 let isRestoringFromHistory = false;
@@ -21,7 +18,7 @@ const getInitialState = () => ({
         name: '',
         startDate: '',
         numberOfDays: 1,
-        days: [], // { date, isoDate, activities: [] } -> このactivitiesは不要になる
+        days: [],
         activities: {}, // { [id]: activityObject }
     },
     categories: [
@@ -40,18 +37,15 @@ const getInitialState = () => ({
             draggedItemId: null,
             originalStartUtc: null,
         },
-        saveStatus: 'idle', // idle, saving, saved
+        saveStatus: 'idle',
     },
-    // undo/redo用の補助情報
     history: {
         canUndo: false,
         canRedo: false,
     }
 });
 
-
 // --- State Accessors and Mutators ---
-
 export function initializeState() {
     const savedPlan = localStorage.getItem('planGeneratorPlan');
     const savedCategories = localStorage.getItem('planGeneratorCategories');
@@ -81,26 +75,30 @@ export function initializeState() {
     appState = {
         ...initialState,
         plan: planToLoad,
-        ui: initialState.ui, // UI stateは永続化しない
+        ui: initialState.ui,
     };
 
-    // plan.daysがなければ再生成
-    if (appState.plan.startDate && appState.plan.numberOfDays > 0 && appState.plan.days.length === 0) {
-        appState.plan.days = createPlanDays(appState.plan.startDate, appState.plan.numberOfDays);
+    if (appState.plan.startDate && appState.plan.numberOfDays > 0) {
+         appState.plan.days = createPlanDays(appState.plan.startDate, appState.plan.numberOfDays);
     }
     
     pushHistory(appState);
 }
 
 function setState(newState, options = { pushHistory: true }) {
-    if (JSON.stringify(appState) === JSON.stringify(newState)) {
-        return; // 変更がなければ何もしない
+    const currentStateString = JSON.stringify({ plan: appState.plan, categories: appState.categories });
+    const newStateString = JSON.stringify({ plan: newState.plan, categories: newState.categories });
+
+    if (currentStateString === newStateString) {
+        return;
     }
+
     appState = newState;
     if (options.pushHistory && !isRestoringFromHistory) {
         pushHistory(appState);
     }
     saveStateToLocalStorage();
+    updateHistoryState();
 }
 
 export function getAppState() {
@@ -117,10 +115,9 @@ function saveStateToLocalStorage() {
 }
 
 // --- Plan Mutations ---
-
 export function setPlanInfo(name, startDate, numberOfDays) {
-    const existingActivities = appState.plan.activities;
     const newDays = createPlanDays(startDate, numberOfDays);
+    const existingActivities = { ...appState.plan.activities };
 
     const newState = {
         ...appState,
@@ -138,12 +135,10 @@ export function setPlanInfo(name, startDate, numberOfDays) {
 
 export function clearPlan() {
      const newState = getInitialState();
-     // カテゴリは維持する
      newState.categories = appState.categories;
      setState(newState);
      showNotification('計画をクリアしました', 'info');
 }
-
 
 function createPlanDays(startDateString, numberOfDays) {
     const days = [];
@@ -160,12 +155,11 @@ function createPlanDays(startDateString, numberOfDays) {
     return days;
 }
 
-
 // --- Activity Mutations ---
-
 export function addOrUpdateActivity(activityData) {
     const newActivities = { ...appState.plan.activities };
-    newActivities[activityData.id] = activityData;
+    const id = activityData.id || `act-${Date.now()}`;
+    newActivities[id] = { ...activityData, id };
     
     const newState = {
         ...appState,
@@ -194,8 +188,11 @@ export function updateMultipleActivities(updatedActivities) {
 
 export function deleteActivities(activityIds) {
     const newActivities = { ...appState.plan.activities };
+    const newSelectedIds = new Set(appState.ui.selectedActivityIds);
+    
     activityIds.forEach(id => {
         delete newActivities[id];
+        newSelectedIds.delete(id);
     });
 
     const newState = {
@@ -206,26 +203,20 @@ export function deleteActivities(activityIds) {
         },
         ui: {
             ...appState.ui,
-            selectedActivityIds: new Set(),
+            selectedActivityIds: newSelectedIds,
         }
     };
     setState(newState);
 }
 
-
 // --- UI State Mutations ---
-
 export function setCurrentEditingItemId(itemId) {
-    const newState = {
-        ...appState,
-        ui: { ...appState.ui, currentEditingItemId: itemId }
-    };
-    setState(newState, { pushHistory: false }); // UIの変更は履歴に残さない
+    appState.ui.currentEditingItemId = itemId;
 }
 
 export function selectActivity(itemId, { ctrlKey, shiftKey }) {
     const newSelection = new Set(appState.ui.selectedActivityIds);
-    const allActivities = Object.values(appState.plan.activities).sort((a,b) => dayjs.utc(a.startUtc).diff(dayjs.utc(b.startUtc)));
+    const allActivities = Object.values(appState.plan.activities).sort((a,b) => dayjs(`${a.startDate} ${a.startTime}`).diff(dayjs(`${b.startDate} ${b.startTime}`)));
     const allIds = allActivities.map(a => a.id);
     let lastSelectedItem = appState.ui.lastSelectedItem;
 
@@ -235,9 +226,11 @@ export function selectActivity(itemId, { ctrlKey, shiftKey }) {
         }
         const startIdx = allIds.indexOf(lastSelectedItem);
         const endIdx = allIds.indexOf(itemId);
-        const [min, max] = [Math.min(startIdx, endIdx), Math.max(startIdx, endIdx)];
-        for (let i = min; i <= max; i++) {
-            newSelection.add(allIds[i]);
+        if(startIdx !== -1 && endIdx !== -1) {
+            const [min, max] = [Math.min(startIdx, endIdx), Math.max(startIdx, endIdx)];
+            for (let i = min; i <= max; i++) {
+                newSelection.add(allIds[i]);
+            }
         }
     } else if (ctrlKey) {
         if (newSelection.has(itemId)) {
@@ -248,40 +241,20 @@ export function selectActivity(itemId, { ctrlKey, shiftKey }) {
         }
     } else {
         newSelection.clear();
-        newSelection.add(itemId);
+        if(itemId) newSelection.add(itemId);
         lastSelectedItem = itemId;
     }
-
-     const newState = {
-        ...appState,
-        ui: { 
-            ...appState.ui,
-            selectedActivityIds: newSelection,
-            lastSelectedItem: lastSelectedItem,
-        }
-    };
-    setState(newState, { pushHistory: false });
+    appState.ui.selectedActivityIds = newSelection;
+    appState.ui.lastSelectedItem = lastSelectedItem;
 }
 
 export function clearSelection() {
-    const newState = {
-        ...appState,
-        ui: {
-            ...appState.ui,
-            selectedActivityIds: new Set(),
-            lastSelectedItem: null,
-        }
-    };
-    setState(newState, { pushHistory: false });
+    appState.ui.selectedActivityIds.clear();
+    appState.ui.lastSelectedItem = null;
 }
 
-
 export function setDraggingState(dragState) {
-    const newState = {
-        ...appState,
-        ui: { ...appState.ui, draggingState: { ...appState.ui.draggingState, ...dragState } }
-    };
-    setState(newState, { pushHistory: false });
+    appState.ui.draggingState = { ...appState.ui.draggingState, ...dragState };
 }
 
 // --- Categories Mutations ---
@@ -291,26 +264,24 @@ export function setCategories(categories) {
      showNotification('カテゴリ設定を保存しました', 'success');
 }
 
-
 // --- History (Undo/Redo) ---
 function pushHistory(stateToPush) {
     if (isRestoringFromHistory) return;
 
     const lastStateInHistory = history[historyIndex];
     if (lastStateInHistory && JSON.stringify(lastStateInHistory.plan) === JSON.stringify(stateToPush.plan) && JSON.stringify(lastStateInHistory.categories) === JSON.stringify(stateToPush.categories)) {
-        return; // データに変更がなければ履歴に追加しない
+        return;
     }
 
     if (historyIndex < history.length - 1) {
         history = history.slice(0, historyIndex + 1);
     }
-    history.push(JSON.parse(JSON.stringify(stateToPush))); // Deep copy
+    history.push(JSON.parse(JSON.stringify(stateToPush)));
 
     if (history.length > MAX_HISTORY) {
         history.shift();
     }
     historyIndex = history.length - 1;
-    updateHistoryState();
 }
 
 export function undo() {
@@ -318,11 +289,10 @@ export function undo() {
         isRestoringFromHistory = true;
         historyIndex--;
         const restoredState = JSON.parse(JSON.stringify(history[historyIndex]));
-        // UI state は元に戻さない
-        restoredState.ui = appState.ui;
-        setState(restoredState, { pushHistory: false });
-        isRestoringFromHistory = false;
+        appState = { ...restoredState, ui: appState.ui }; // UI stateは維持
+        saveStateToLocalStorage();
         updateHistoryState();
+        isRestoringFromHistory = false;
         return true;
     }
     return false;
@@ -333,30 +303,16 @@ export function redo() {
         isRestoringFromHistory = true;
         historyIndex++;
         const restoredState = JSON.parse(JSON.stringify(history[historyIndex]));
-        restoredState.ui = appState.ui;
-        setState(restoredState, { pushHistory: false });
-        isRestoringFromHistory = false;
+        appState = { ...restoredState, ui: appState.ui }; // UI stateは維持
+        saveStateToLocalStorage();
         updateHistoryState();
+        isRestoringFromHistory = false;
         return true;
     }
     return false;
 }
 
 function updateHistoryState() {
-     const canUndo = historyIndex > 0;
-     const canRedo = historyIndex < history.length - 1;
-     const newState = {
-        ...appState,
-        history: { canUndo, canRedo }
-    };
-    // このstate変更は履歴にも残さず、再描画もトリガーしない
-    // UI側で直接ボタンのdisabledを切り替える
-    appState = newState;
-}
-
-export function getHistoryStatus() {
-    return {
-        canUndo: historyIndex > 0,
-        canRedo: historyIndex < history.length - 1,
-    }
+     appState.history.canUndo = historyIndex > 0;
+     appState.history.canRedo = historyIndex < history.length - 1;
 }

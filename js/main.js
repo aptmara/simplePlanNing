@@ -55,17 +55,15 @@ export const summaryTotalTimeContainer = document.getElementById('summaryTotalTi
 
 // --- Main Execution ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Day.jsの初期設定
     dayjs.extend(window.dayjs_plugin_customParseFormat);
     dayjs.extend(window.dayjs_plugin_utc);
     dayjs.extend(window.dayjs_plugin_timezone);
     
     initializeTheme();
-    state.initializeState(); // Stateを初期化 (localStorageから復元)
-    ui.render(state.getAppState()); // 初期描画
+    state.initializeState();
+    ui.render(state.getAppState());
     setupEventListeners();
 });
-
 
 function setupEventListeners() {
     planForm.addEventListener('submit', handlers.handleFormSubmit);
@@ -83,9 +81,9 @@ function setupEventListeners() {
     bodyElement.addEventListener('dragleave', handlers.handleDragLeaveFile);
     bodyElement.addEventListener('drop', handlers.handleDropFile);
 
-    // キーボードショートカット
     bodyElement.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) {
             return;
         }
 
