@@ -316,3 +316,21 @@ function updateHistoryState() {
      appState.history.canUndo = historyIndex > 0;
      appState.history.canRedo = historyIndex < history.length - 1;
 }
+
+export function getCurrentPlanObject() {
+    if (!appState || !appState.plan || !appState.plan.days) {
+        return { planData: [], allActivities: [] };
+    }
+    const allActivities = Object.values(appState.plan.activities);
+    const planData = appState.plan.days.map(day => ({
+        ...day,
+        activities: allActivities.filter(act => {
+            const actStart = dayjs(act.startDate);
+            const actEnd = dayjs(act.endDate);
+            const dayStart = dayjs(day.isoDate);
+            return dayStart.isBetween(actStart, actEnd, 'day', '[]');
+        })
+    }));
+
+    return { planData, allActivities };
+}

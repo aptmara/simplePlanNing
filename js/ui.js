@@ -441,8 +441,8 @@ export function updateSummary() {
 
     let totalPlanMinutes = 0;
     const categoryTotals = {};
-    const allActivities = planObject.planData.flatMap(day => day.activities);
-    const uniqueActivities = Object.values(allActivities.reduce((acc, cur) => {
+    // allActivities を planObject から直接取得するように変更
+    const uniqueActivities = Object.values(planObject.allActivities.reduce((acc, cur) => {
         if (!acc[cur.id]) acc[cur.id] = cur;
         return acc;
     }, {}));
