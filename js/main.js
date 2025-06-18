@@ -19,6 +19,7 @@ export const clearPlanButton = document.getElementById('clearPlanButton');
 export const copyPlanButton = document.getElementById('copyPlanButton');
 export const printPlanButton = document.getElementById('printPlanButton');
 export const exportJsonButton = document.getElementById('exportJsonButton');
+export const exportCsvButton = document.getElementById('exportCsvButton');
 export const exportPdfButton = document.getElementById('exportPdfButton');
 export const undoButton = document.getElementById('undoButton');
 export const redoButton = document.getElementById('redoButton');
@@ -92,6 +93,7 @@ function setupEventListeners() {
     copyPlanButton.addEventListener('click', handlers.copyPlanAsText);
     printPlanButton.addEventListener('click', () => window.print());
     exportJsonButton.addEventListener('click', handlers.exportPlanAsJson);
+    exportCsvButton.addEventListener('click', handlers.exportPlanAsCsv);
     exportPdfButton.addEventListener('click', handlers.exportPdfButtonClickHandler);
 
     undoButton.addEventListener('click', () => {
@@ -119,6 +121,31 @@ function setupEventListeners() {
     bodyElement.addEventListener('dragover', handlers.handleDragOverFile);
     bodyElement.addEventListener('dragleave', handlers.handleDragLeaveFile);
     bodyElement.addEventListener('drop', handlers.handleDropFile);
+
+    // キーボードショートカットの追加
+    bodyElement.addEventListener('keydown', (e) => {
+        // テキスト入力中は何もしない
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+            return;
+        }
+
+        // 複数選択アイテムの削除 (Delete or Backspace)
+        if ((e.key === 'Delete' || e.key === 'Backspace') && state.selectedItems.size > 0) {
+            e.preventDefault(); // ブラウザの「戻る」動作を防止
+            handlers.deleteSelectedItems();
+        }
+
+        // Undo/Redo のショートカット (Ctrl/Cmd + Z/Y)
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === 'z') {
+                e.preventDefault();
+                undoButton.click();
+            } else if (e.key === 'y') {
+                e.preventDefault();
+                redoButton.click();
+            }
+        }
+    });
 
     editModal.querySelector('#deleteModalButton').addEventListener('click', () => {
         if (state.currentEditingItem) {

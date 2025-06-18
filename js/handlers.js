@@ -551,6 +551,31 @@ export function handleDuplicateItem(itemToDuplicate) {
     ui.addPlanItem(duplicatedActivity.startDate, duplicatedActivity);
 }
 
+export function deleteSelectedItems() {
+    if (state.selectedItems.size === 0) return;
+
+    // ユニークなアクティビティIDと名前を取得
+    const uniqueActivityIds = new Set();
+    const activityNames = [];
+    state.selectedItems.forEach(item => {
+        const id = item.dataset.activityId;
+        if (!uniqueActivityIds.has(id)) {
+            uniqueActivityIds.add(id);
+            activityNames.push(item.dataset.name);
+        }
+    });
+
+    if (confirm(`${uniqueActivityIds.size}個のアクティビティ（${activityNames.slice(0, 3).join(', ')}${uniqueActivityIds.size > 3 ? '...' : ''}）を削除しますか？`)) {
+        uniqueActivityIds.forEach(activityId => {
+            document.querySelectorAll(`[data-activity-id="${activityId}"]`).forEach(part => part.remove());
+        });
+        state.selectedItems.clear();
+        ui.updateSelectionUI();
+        savePlanToLocalStorage();
+        ui.showNotification(`${uniqueActivityIds.size}個のアイテムを削除しました`, 'info');
+    }
+}
+
 
 // --- Export and File Drop Handlers ---
 export function copyPlanAsText() {
@@ -611,6 +636,68 @@ export function exportPlanAsJson() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     ui.showNotification('JSONファイルとしてエクスポートしました', 'success');
+}
+
+export function exportPlanAsCsv() {
+    const planObject = state.getCurrentPlanObject();
+    if (!planObject || planObject.planData.length === 0) {
+        ui.showNotification('エクスポートする計画がありません。', 'error');
+        return;
+    }
+
+    const allActivities = planObject.planData.flatMap(d => d.activities).sort((a, b) => dayjs(`${a.startDate} ${a.startTime}`).diff(dayjs(`${b.startDate} ${b.startTime}`)));
+    const uniqueActivities = Object.values(allActivities.reduce((acc, cur) => { if (!acc[cur.id]) acc[cur.id] = cur; return acc; }, {}));
+
+    if (uniqueActivities.length === 0) {
+        ui.showNotification('エクスポートするアクティビティがありません。', 'error');
+        return;
+    }
+
+    // CSVエスケープ用のヘルパー関数
+    const escapeCsvCell = (cell) => {
+        if (cell === null || cell === undefined) {
+            return '';
+        }
+        const cellStr = String(cell);
+        // セル内にカンマ、ダブルクォーテーション、改行が含まれる場合はダブルクォーテーションで囲む
+        if (cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n')) {
+            // ダブルクォーテーション自体は二重にする
+            return `"${cellStr.replace(/"/g, '""')}"`;
+        }
+        return cellStr;
+    };
+
+    const header = ['アクティビティ名', '開始日', '開始時刻', '終了日', '終了時刻', 'カテゴリ', 'メモ'];
+    const csvRows = [header.join(',')];
+
+    uniqueActivities.forEach(activity => {
+        const category = state.categories.find(c => c.id === activity.category);
+        const categoryName = category ? category.name : 'カテゴリなし';
+
+        const row = [
+            activity.name,
+            activity.startDate,
+            activity.startTime,
+            activity.endDate,
+            activity.endTime,
+            categoryName,
+            activity.notes
+        ].map(escapeCsvCell);
+        csvRows.push(row.join(','));
+    });
+
+    const csvString = csvRows.join('\n');
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]); // UTF-8 BOM
+    const blob = new Blob([bom, csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `plan-${planObject.name.replace(/\s/g, '_') || 'export'}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    ui.showNotification('CSVファイルとしてエクスポートしました', 'success');
 }
 
 export function exportPdfButtonClickHandler() {
