@@ -44,7 +44,7 @@ export function saveTemplate(templateName) {
         return false;
     }
     const templates = getTemplates();
-    templates[templateName] = { ...planData };
+    templates[templateName] = JSON.parse(JSON.stringify(planData));
     try {
         localStorage.setItem(TEMPLATES_KEY, JSON.stringify(templates));
         alert(`「${templateName}」をテンプレートとして保存しました。`);

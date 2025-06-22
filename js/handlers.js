@@ -1,7 +1,7 @@
 import { planData, saveState, clearState, saveTemplate, loadTemplate, deleteTemplate } from './state.js';
 import { renderPreview, populateForm, renderTemplateSelector } from './ui.js';
 
-export function handleGenericInput(event) {
+function handleGenericInput(event) {
     const target = event.target;
     const basicInfoKey = target.dataset.target;
     if (basicInfoKey) {
@@ -22,8 +22,6 @@ export function handleGenericInput(event) {
             if (dataType === 'budget.income' || dataType === 'budget.expense') {
                 const [main, sub] = dataType.split('.');
                 planData[main][sub][index][field] = target.value;
-            } else if (dataType) {
-                planData[dataType][index][field] = target.value;
             }
         }
     }
@@ -31,21 +29,18 @@ export function handleGenericInput(event) {
     saveState();
 }
 
-export function handleAddRow(dataType, newRowObject) {
+function handleAddRow(dataType, newRowObject) {
     if (dataType === 'budget.income' || dataType === 'budget.expense') {
         const [main, sub] = dataType.split('.');
         if (!planData[main]) planData[main] = {};
         if (!planData[main][sub]) planData[main][sub] = [];
         planData[main][sub].push(newRowObject);
-    } else {
-        if (!planData[dataType]) planData[dataType] = [];
-        planData[dataType].push(newRowObject);
     }
     populateForm();
     saveState();
 }
 
-export function handleDeleteRow(event) {
+function handleDeleteRow(event) {
     const target = event.target;
     if (!target.classList.contains('delete-row')) return;
     const row = target.closest('tr');
@@ -57,8 +52,6 @@ export function handleDeleteRow(event) {
             if (dataType === 'budget.income' || dataType === 'budget.expense') {
                 const [main, sub] = dataType.split('.');
                 planData[main][sub].splice(index, 1);
-            } else if (dataType) {
-                planData[dataType].splice(index, 1);
             }
             populateForm();
             renderPreview();
@@ -67,12 +60,12 @@ export function handleDeleteRow(event) {
     }
 }
 
-export function handleSaveButton() {
+function handleSaveButton() {
     saveState();
     alert('現在の内容をブラウザに保存しました。');
 }
 
-export function handleClearButton() {
+function handleClearButton() {
     if (confirm('警告！\n入力されたすべてのデータ（保存された内容も含む）が消去されます。\n本当によろしいですか？')) {
         clearState();
         alert('データを消去しました。ページをリロードします。');
@@ -80,16 +73,17 @@ export function handleClearButton() {
     }
 }
 
-export function handleLoadTemplate() {
+function handleLoadTemplate() {
     const select = document.getElementById('template-select');
     const templateName = select.value;
     if (loadTemplate(templateName)) {
-        populateForm();
-        renderPreview();
+        // カレンダーはリロードしないとイベントがうまく更新されない場合があるため
+        // ページ全体をリロードするのが最も確実
+        location.reload();
     }
 }
 
-export function handleSaveTemplate() {
+function handleSaveTemplate() {
     const input = document.getElementById('template-name-input');
     const templateName = input.value.trim();
     if (saveTemplate(templateName)) {
@@ -98,10 +92,28 @@ export function handleSaveTemplate() {
     }
 }
 
-export function handleDeleteTemplate() {
+function handleDeleteTemplate() {
     const select = document.getElementById('template-select');
     const templateName = select.value;
     if (deleteTemplate(templateName)) {
         renderTemplateSelector();
     }
+}
+
+export function initializeEventListeners() {
+    const editorPane = document.querySelector('.editor-pane');
+    
+    editorPane.addEventListener('input', handleGenericInput);
+    editorPane.addEventListener('click', handleDeleteRow);
+
+    document.getElementById('add-income-row').addEventListener('click', () => handleAddRow('budget.income', { item: '', description: '', amount: '' }));
+    document.getElementById('add-expense-row').addEventListener('click', () => handleAddRow('budget.expense', { item: '', description: '', amount: '' }));
+
+    document.getElementById('save-button').addEventListener('click', handleSaveButton);
+    document.getElementById('clear-button').addEventListener('click', handleClearButton);
+    document.getElementById('print-button').addEventListener('click', () => window.print());
+
+    document.getElementById('load-template-button').addEventListener('click', handleLoadTemplate);
+    document.getElementById('save-template-button').addEventListener('click', handleSaveTemplate);
+    document.getElementById('delete-template-button').addEventListener('click', handleDeleteTemplate);
 }

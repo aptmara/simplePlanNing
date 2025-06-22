@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>計画書ジェネレーター</title>
     <link rel="stylesheet" href="style.css">
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js'></script>
 </head>
 <body>
     <div class="container">
@@ -19,6 +20,7 @@
         <div class="main-content">
             <main class="editor-pane">
                 <h2>入力フォーム</h2>
+
                 <fieldset>
                     <legend>1. 基本情報</legend>
                     <div class="form-grid">
@@ -36,16 +38,12 @@
                         <textarea id="plan-goals" rows="3" data-target="basicInfo.plan-goals" placeholder="目標を改行して複数入力できます"></textarea>
                     </div>
                 </fieldset>
+
                 <fieldset>
                     <legend>2. 詳細スケジュール</legend>
-                    <table id="schedule-table" class="dynamic-table">
-                        <thead>
-                            <tr><th>時間</th><th>項目</th><th>内容</th><th>配役</th><th>資材</th><th>留意事項</th><th>操作</th></tr>
-                        </thead>
-                        <tbody id="schedule-body"></tbody>
-                    </table>
-                    <button id="add-schedule-row" class="add-row-button">＋ スケジュール行を追加</button>
+                    <div id="calendar"></div>
                 </fieldset>
+                
                 <fieldset>
                     <legend>3. 持ち物リスト</legend>
                     <div class="form-grid">
@@ -55,31 +53,27 @@
                         <textarea id="items-group" class="items-input" data-item-type="group" rows="5" placeholder="項目を改行して入力"></textarea>
                     </div>
                 </fieldset>
+
                 <fieldset>
                     <legend>4. 会計報告</legend>
                     <h3>収入の部</h3>
-                    <table id="income-table" class="dynamic-table accounting-table">
-                        <thead>
-                            <tr><th>項目</th><th>摘要</th><th>金額</th><th>操作</th></tr>
-                        </thead>
+                    <table id="income-table" class="dynamic-table accounting-table" data-type="budget.income">
+                        <thead><tr><th>項目</th><th>摘要</th><th>金額</th><th>操作</th></tr></thead>
                         <tbody id="income-body"></tbody>
                     </table>
                     <button id="add-income-row" class="add-row-button">＋ 収入項目を追加</button>
                     <h3 class="mt-1">支出の部</h3>
-                    <table id="expense-table" class="dynamic-table accounting-table">
-                        <thead>
-                            <tr><th>項目</th><th>摘要</th><th>金額</th><th>操作</th></tr>
-                        </thead>
+                    <table id="expense-table" class="dynamic-table accounting-table" data-type="budget.expense">
+                        <thead><tr><th>項目</th><th>摘要</th><th>金額</th><th>操作</th></tr></thead>
                         <tbody id="expense-body"></tbody>
                     </table>
                     <button id="add-expense-row" class="add-row-button">＋ 支出項目を追加</button>
                 </fieldset>
+
                 <fieldset>
                     <legend>5. テンプレート</legend>
                     <div class="template-controls">
-                        <select id="template-select">
-                            <option value="">テンプレートを選択...</option>
-                        </select>
+                        <select id="template-select"><option value="">テンプレートを選択...</option></select>
                         <button id="load-template-button">読込</button>
                         <button id="delete-template-button" class="danger">削除</button>
                     </div>
@@ -89,12 +83,42 @@
                     </div>
                 </fieldset>
             </main>
+
             <aside class="preview-pane">
                 <h2>プレビュー</h2>
                 <div id="preview-content" class="paper-a4"></div>
             </aside>
         </div>
     </div>
+
+    <div id="event-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h3 id="modal-title">スケジュールの編集</h3>
+            <form id="event-form">
+                <input type="hidden" id="event-id">
+                <label for="event-title">項目</label>
+                <input type="text" id="event-title" required>
+                <label for="event-start">開始</label>
+                <input type="datetime-local" id="event-start" required>
+                <label for="event-end">終了</label>
+                <input type="datetime-local" id="event-end" required>
+                <label for="event-details">内容</label>
+                <textarea id="event-details" rows="3"></textarea>
+                <label for="event-cast">配役</label>
+                <input type="text" id="event-cast">
+                <label for="event-materials">資材</label>
+                <input type="text" id="event-materials">
+                <label for="event-notes">留意事項</label>
+                <textarea id="event-notes" rows="2"></textarea>
+                <div class="modal-actions">
+                    <button type="submit" id="save-event-button">保存</button>
+                    <button type="button" id="delete-event-button" class="danger">削除</button>
+                    <button type="button" id="cancel-event-button">キャンセル</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script type="module" src="./js/main.js"></script>
 </body>
 </html>
