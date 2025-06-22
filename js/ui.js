@@ -1,4 +1,3 @@
-// `state.js`から必要なものをインポート
 import { planData, getTemplates } from './state.js';
 
 const previewContent = document.getElementById('preview-content');
@@ -6,29 +5,23 @@ const scheduleBody = document.getElementById('schedule-body');
 const incomeBody = document.getElementById('income-body');
 const expenseBody = document.getElementById('expense-body');
 
-// 各関数を`export`する
 export function renderPreview() {
     const { basicInfo, schedule, items, budget } = planData;
     let html = '';
-
     let formattedDate = '';
     if (basicInfo['plan-date']) { try { const date = new Date(basicInfo['plan-date']); const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); const h = String(date.getHours()).padStart(2, '0'); const min = String(date.getMinutes()).padStart(2, '0'); formattedDate = `${y}年${m}月${d}日 ${h}:${min}`; } catch(e) { formattedDate = '（日付形式エラー）'; } }
-    const goalsHtml = basicInfo['plan-goals'].split('\n').filter(g => g).map(goal => `<li>${goal}</li>`).join('');
-    html += `<h1>${basicInfo['plan-name']}</h1><div class="preview-section"><h2>1. 基本情報</h2><p><strong>日時:</strong> ${formattedDate}</p><p><strong>場所:</strong> ${basicInfo['plan-location']}</p><p><strong>責任者:</strong> ${basicInfo['plan-manager']}</p></div><div class="preview-section"><h2>2. 目的</h2><p>${basicInfo['plan-purpose'].replace(/\n/g, '<br>')}</p></div><div class="preview-section"><h2>3. 目標</h2><ul>${goalsHtml}</ul></div>`;
-    
+    const goalsHtml = (basicInfo.goals || '').split('\n').filter(g => g).map(goal => `<li>${goal}</li>`).join('');
+    html += `<h1>${basicInfo['plan-name']}</h1><div class="preview-section"><h2>1. 基本情報</h2><p><strong>日時:</strong> ${formattedDate}</p><p><strong>場所:</strong> ${basicInfo['plan-location']}</p><p><strong>責任者:</strong> ${basicInfo['plan-manager']}</p></div><div class="preview-section"><h2>2. 目的</h2><p>${(basicInfo.purpose || '').replace(/\n/g, '<br>')}</p></div><div class="preview-section"><h2>3. 目標</h2><ul>${goalsHtml}</ul></div>`;
     let scheduleTableHtml = `<table class="preview-table"><thead><tr><th>時間</th><th>項目</th><th>内容</th><th>配役</th><th>資材</th><th>留意事項</th></tr></thead><tbody>`;
-    schedule.forEach(row => { scheduleTableHtml += `<tr><td>${row.time || ''}</td><td>${row.item || ''}</td><td>${(row.details || '').replace(/\n/g, '<br>')}</td><td>${row.cast || ''}</td><td>${row.materials || ''}</td><td>${(row.notes || '').replace(/\n/g, '<br>')}</td></tr>`; });
+    (schedule || []).forEach(row => { scheduleTableHtml += `<tr><td>${row.time || ''}</td><td>${row.item || ''}</td><td>${(row.details || '').replace(/\n/g, '<br>')}</td><td>${row.cast || ''}</td><td>${row.materials || ''}</td><td>${(row.notes || '').replace(/\n/g, '<br>')}</td></tr>`; });
     scheduleTableHtml += '</tbody></table>';
     html += `<div class="preview-section"><h2>4. 詳細スケジュール</h2>${scheduleTableHtml}</div>`;
-
     const personalItemsHtml = (items.personal || '').split('\n').filter(i => i).map(i => `<li>${i}</li>`).join('');
     const groupItemsHtml = (items.group || '').split('\n').filter(i => i).map(i => `<li>${i}</li>`).join('');
     html += `<div class="preview-section"><h2>5. 持ち物リスト</h2><h3>個人装備</h3><ul>${personalItemsHtml}</ul><h3>班装備</h3><ul>${groupItemsHtml}</ul></div>`;
-
     const totalIncome = (budget.income || []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
     const totalExpense = (budget.expense || []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
     const balance = totalIncome - totalExpense;
-
     html += `<div class="preview-section"><h2>6. 会計報告</h2>`;
     html += `<h3>収入の部</h3><table class="preview-table"><thead><tr><th>項目</th><th>摘要</th><th>金額</th></tr></thead><tbody>`;
     (budget.income || []).forEach(row => { html += `<tr><td>${row.item || ''}</td><td>${row.description || ''}</td><td class="amount">${(Number(row.amount) || 0).toLocaleString()} 円</td></tr>`; });
@@ -39,10 +32,8 @@ export function renderPreview() {
     html += `<tr><td colspan="2"><strong>支出合計</strong></td><td class="amount"><strong>${totalExpense.toLocaleString()} 円</strong></td></tr>`;
     html += `</tbody></table>`;
     html += `<div class="budget-summary"><strong>残額: ${balance.toLocaleString()} 円</strong></div></div>`;
-
     previewContent.innerHTML = html;
 }
-
 function renderDynamicTable(tbodyElement, dataArray, fields) {
     tbodyElement.innerHTML = '';
     (dataArray || []).forEach((row, index) => {
@@ -62,7 +53,6 @@ function renderDynamicTable(tbodyElement, dataArray, fields) {
         tbodyElement.appendChild(tr);
     });
 }
-
 export function populateForm() {
     for (const key in planData.basicInfo) {
         const element = document.getElementById(key);
@@ -70,7 +60,6 @@ export function populateForm() {
     }
     document.getElementById('items-personal').value = planData.items.personal || '';
     document.getElementById('items-group').value = planData.items.group || '';
-    
     renderDynamicTable(scheduleBody, planData.schedule, [
         { name: 'time', type: 'time' }, { name: 'item' }, { name: 'details', type: 'textarea' },
         { name: 'cast' }, { name: 'materials' }, { name: 'notes', type: 'textarea' }
@@ -78,15 +67,12 @@ export function populateForm() {
     const budgetFields = [{ name: 'item' }, { name: 'description' }, { name: 'amount', type: 'number' }];
     renderDynamicTable(incomeBody, planData.budget.income, budgetFields);
     renderDynamicTable(expenseBody, planData.budget.expense, budgetFields);
-    
     renderTemplateSelector();
 }
-
 export function renderTemplateSelector() {
     const templates = getTemplates();
     const select = document.getElementById('template-select');
     const selectedValue = select.value;
-
     select.innerHTML = '<option value="">テンプレートを選択...</option>';
     for (const name in templates) {
         const option = document.createElement('option');
