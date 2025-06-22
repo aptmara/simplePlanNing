@@ -1,8 +1,6 @@
-// 必要なモジュールをインポート
 import { planData, saveState, clearState, saveTemplate, loadTemplate, deleteTemplate } from './state.js';
 import { renderPreview, populateForm, renderTemplateSelector } from './ui.js';
 
-// 各関数を`export`する
 export function handleGenericInput(event) {
     const target = event.target;
     const basicInfoKey = target.dataset.target;
@@ -36,7 +34,7 @@ export function handleGenericInput(event) {
 export function handleAddRow(dataType, newRowObject) {
     if (dataType === 'budget.income' || dataType === 'budget.expense') {
         const [main, sub] = dataType.split('.');
-        if (!planData[main]) planData[main] = {}; // 安全対策
+        if (!planData[main]) planData[main] = {};
         if (!planData[main][sub]) planData[main][sub] = [];
         planData[main][sub].push(newRowObject);
     } else {
