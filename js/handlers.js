@@ -1,4 +1,9 @@
-function handleGenericInput(event) {
+// 必要なモジュールをインポート
+import { planData, saveState, clearState, saveTemplate, loadTemplate, deleteTemplate } from './state.js';
+import { renderPreview, populateForm, renderTemplateSelector } from './ui.js';
+
+// 各関数を`export`する
+export function handleGenericInput(event) {
     const target = event.target;
     const basicInfoKey = target.dataset.target;
     if (basicInfoKey) {
@@ -28,18 +33,21 @@ function handleGenericInput(event) {
     saveState();
 }
 
-function handleAddRow(dataType, newRowObject) {
+export function handleAddRow(dataType, newRowObject) {
     if (dataType === 'budget.income' || dataType === 'budget.expense') {
         const [main, sub] = dataType.split('.');
+        if (!planData[main]) planData[main] = {}; // 安全対策
+        if (!planData[main][sub]) planData[main][sub] = [];
         planData[main][sub].push(newRowObject);
     } else {
+        if (!planData[dataType]) planData[dataType] = [];
         planData[dataType].push(newRowObject);
     }
     populateForm();
     saveState();
 }
 
-function handleDeleteRow(event) {
+export function handleDeleteRow(event) {
     const target = event.target;
     if (!target.classList.contains('delete-row')) return;
     const row = target.closest('tr');
@@ -61,12 +69,12 @@ function handleDeleteRow(event) {
     }
 }
 
-function handleSaveButton() {
+export function handleSaveButton() {
     saveState();
     alert('現在の内容をブラウザに保存しました。');
 }
 
-function handleClearButton() {
+export function handleClearButton() {
     if (confirm('警告！\n入力されたすべてのデータ（保存された内容も含む）が消去されます。\n本当によろしいですか？')) {
         clearState();
         alert('データを消去しました。ページをリロードします。');
@@ -74,7 +82,7 @@ function handleClearButton() {
     }
 }
 
-function handleLoadTemplate() {
+export function handleLoadTemplate() {
     const select = document.getElementById('template-select');
     const templateName = select.value;
     if (loadTemplate(templateName)) {
@@ -83,7 +91,7 @@ function handleLoadTemplate() {
     }
 }
 
-function handleSaveTemplate() {
+export function handleSaveTemplate() {
     const input = document.getElementById('template-name-input');
     const templateName = input.value.trim();
     if (saveTemplate(templateName)) {
@@ -92,7 +100,7 @@ function handleSaveTemplate() {
     }
 }
 
-function handleDeleteTemplate() {
+export function handleDeleteTemplate() {
     const select = document.getElementById('template-select');
     const templateName = select.value;
     if (deleteTemplate(templateName)) {
