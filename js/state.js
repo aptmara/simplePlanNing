@@ -1,34 +1,37 @@
 const PLAN_DATA_KEY = 'planData-v1';
 const TEMPLATES_KEY = 'planTemplates-v1';
 
-let planData = {
+// `export` を追加して、他のファイルからこの変数を参照できるようにする
+export let planData = {
     basicInfo: { 'plan-name': '（計画名）', 'plan-date': '', 'plan-location': '', 'plan-manager': '', 'plan-purpose': '', 'plan-goals': '' },
     schedule: [],
     items: { personal: '', group: '' },
     budget: { income: [], expense: [] }
 };
 
-function saveState() {
+// 各関数も `export` する
+export function saveState() {
     try {
         localStorage.setItem(PLAN_DATA_KEY, JSON.stringify(planData));
     } catch (e) { console.error('データの保存に失敗しました。', e); }
 }
 
-function loadState() {
+export function loadState() {
     try {
         const json = localStorage.getItem(PLAN_DATA_KEY);
         if (json) {
             const loadedData = JSON.parse(json);
+            // 読み込んだデータでplanDataを上書き
             planData = { ...planData, ...loadedData };
         }
     } catch (e) { console.error('データの読み込みに失敗しました。', e); }
 }
 
-function clearState() {
+export function clearState() {
     localStorage.removeItem(PLAN_DATA_KEY);
 }
 
-function getTemplates() {
+export function getTemplates() {
     try {
         const json = localStorage.getItem(TEMPLATES_KEY);
         return json ? JSON.parse(json) : {};
@@ -38,7 +41,7 @@ function getTemplates() {
     }
 }
 
-function saveTemplate(templateName) {
+export function saveTemplate(templateName) {
     if (!templateName) {
         alert('テンプレート名を入力してください。');
         return false;
@@ -56,7 +59,7 @@ function saveTemplate(templateName) {
     }
 }
 
-function loadTemplate(templateName) {
+export function loadTemplate(templateName) {
     if (!templateName) return false;
     const templates = getTemplates();
     if (templates[templateName]) {
@@ -71,7 +74,7 @@ function loadTemplate(templateName) {
     return false;
 }
 
-function deleteTemplate(templateName) {
+export function deleteTemplate(templateName) {
     if (!templateName) return false;
     const templates = getTemplates();
     if (templates[templateName]) {
