@@ -2,7 +2,15 @@ const PLAN_DATA_KEY = 'planData-v1';
 const TEMPLATES_KEY = 'planTemplates-v1';
 
 export let planData = {
-    basicInfo: { 'plan-name': '（計画名）', 'plan-date': '', 'plan-location': '', 'plan-manager': '', 'plan-purpose': '', 'plan-goals': '' },
+    basicInfo: {
+        'plan-name': '（計画名）',
+        'plan-date': '',
+        'plan-duration': 1,
+        'plan-location': '',
+        'plan-manager': '',
+        'plan-purpose': '',
+        'plan-goals': ''
+    },
     schedule: [],
     items: { personal: '', group: '' },
     budget: { income: [], expense: [] }

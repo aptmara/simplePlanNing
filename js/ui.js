@@ -7,48 +7,28 @@ const expenseBody = document.getElementById('expense-body');
 export function renderPreview() {
     const { basicInfo, schedule, items, budget } = planData;
     let html = '';
-
-    // 基本情報、目的、目標のHTML生成 (変更なし)
     let formattedDate = '';
     if (basicInfo['plan-date']) { try { const date = new Date(basicInfo['plan-date']); const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); const h = String(date.getHours()).padStart(2, '0'); const min = String(date.getMinutes()).padStart(2, '0'); formattedDate = `${y}年${m}月${d}日 ${h}:${min}`; } catch(e) { formattedDate = '（日付形式エラー）'; } }
     const goalsHtml = (basicInfo.goals || '').split('\n').filter(g => g).map(goal => `<li>${goal}</li>`).join('');
-    html += `<h1>${basicInfo['plan-name']}</h1><div class="preview-section"><h2>1. 基本情報</h2><p><strong>日時:</strong> ${formattedDate}</p><p><strong>場所:</strong> ${basicInfo['plan-location']}</p><p><strong>責任者:</strong> ${basicInfo['plan-manager']}</p></div><div class="preview-section"><h2>2. 目的</h2><p>${(basicInfo.purpose || '').replace(/\n/g, '<br>')}</p></div><div class="preview-section"><h2>3. 目標</h2><ul>${goalsHtml}</ul></div>`;
+    html += `<h1>${basicInfo['plan-name']}</h1><div class="preview-section"><h2>1. 基本情報</h2><p><strong>開始日時:</strong> ${formattedDate}</p><p><strong>期間:</strong> ${basicInfo['plan-duration'] || 1} 日間</p><p><strong>場所:</strong> ${basicInfo['plan-location']}</p><p><strong>責任者:</strong> ${basicInfo['plan-manager']}</p></div><div class="preview-section"><h2>2. 目的</h2><p>${(basicInfo.purpose || '').replace(/\n/g, '<br>')}</p></div><div class="preview-section"><h2>3. 目標</h2><ul>${goalsHtml}</ul></div>`;
     
-    // 詳細スケジュール
     let scheduleTableHtml = `<table class="preview-table"><thead><tr><th>時間</th><th>項目</th><th>内容</th><th>配役</th><th>資材</th><th>留意事項</th></tr></thead><tbody>`;
     const sortedSchedule = [...(schedule || [])].sort((a, b) => new Date(a.start) - new Date(b.start));
-    
     sortedSchedule.forEach(event => {
-        // event自体が存在しないケースをガード
         if (!event) return;
-
         const start = new Date(event.start);
         const end = new Date(event.end);
-        const timeStr = (start && end && !isNaN(start) && !isNaN(end)) 
-            ? `${start.getHours()}:${String(start.getMinutes()).padStart(2, '0')} - ${end.getHours()}:${String(end.getMinutes()).padStart(2, '0')}`
-            : '時間未設定';
-        
-        // 【最重要修正点】 event.extendedPropsが存在しない場合、空のオブジェクトをデフォルト値として使用する
+        const timeStr = (start && end && !isNaN(start) && !isNaN(end)) ? `${start.getHours()}:${String(start.getMinutes()).padStart(2, '0')} - ${end.getHours()}:${String(end.getMinutes()).padStart(2, '0')}` : '時間未設定';
         const props = event.extendedProps || {};
-        
-        scheduleTableHtml += `
-            <tr>
-                <td>${timeStr}</td>
-                <td>${event.title || ''}</td>
-                <td>${(props.details || '').replace(/\n/g, '<br>')}</td>
-                <td>${props.cast || ''}</td>
-                <td>${props.materials || ''}</td>
-                <td>${(props.notes || '').replace(/\n/g, '<br>')}</td>
-            </tr>
-        `;
+        scheduleTableHtml += `<tr><td>${timeStr}</td><td>${event.title || ''}</td><td>${(props.details || '').replace(/\n/g, '<br>')}</td><td>${props.cast || ''}</td><td>${props.materials || ''}</td><td>${(props.notes || '').replace(/\n/g, '<br>')}</td></tr>`;
     });
     scheduleTableHtml += '</tbody></table>';
     html += `<div class="preview-section"><h2>4. 詳細スケジュール</h2>${scheduleTableHtml}</div>`;
     
-    // 持ち物リスト、会計報告 (変更なし)
     const personalItemsHtml = (items.personal || '').split('\n').filter(i => i).map(i => `<li>${i}</li>`).join('');
     const groupItemsHtml = (items.group || '').split('\n').filter(i => i).map(i => `<li>${i}</li>`).join('');
     html += `<div class="preview-section"><h2>5. 持ち物リスト</h2><h3>個人装備</h3><ul>${personalItemsHtml}</ul><h3>班装備</h3><ul>${groupItemsHtml}</ul></div>`;
+    
     const totalIncome = (budget.income || []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
     const totalExpense = (budget.expense || []).reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
     const balance = totalIncome - totalExpense;
@@ -62,7 +42,6 @@ export function renderPreview() {
     html += `<tr><td colspan="2"><strong>支出合計</strong></td><td class="amount"><strong>${totalExpense.toLocaleString()} 円</strong></td></tr>`;
     html += `</tbody></table>`;
     html += `<div class="budget-summary"><strong>残額: ${balance.toLocaleString()} 円</strong></div></div>`;
-    
     previewContent.innerHTML = html;
 }
 
@@ -111,4 +90,11 @@ export function renderTemplateSelector() {
         select.appendChild(option);
     }
     select.value = selectedValue;
+}
+
+export function showView(viewId) {
+    document.querySelectorAll('.view').forEach(view => {
+        view.classList.remove('active');
+    });
+    document.getElementById(viewId).classList.add('active');
 }

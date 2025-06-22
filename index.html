@@ -17,77 +17,83 @@
                 <button id="clear-button" title="全ての入力データを消去する">全消去</button>
             </div>
         </header>
-        <div class="main-content">
-            <main class="editor-pane">
-                <h2>入力フォーム</h2>
 
-                <fieldset>
-                    <legend>1. 基本情報</legend>
-                    <div class="form-grid">
-                        <label for="plan-name">計画名:</label>
-                        <input type="text" id="plan-name" data-target="basicInfo.plan-name">
-                        <label for="plan-date">日時:</label>
-                        <input type="datetime-local" id="plan-date" data-target="basicInfo.plan-date">
-                        <label for="plan-location">場所:</label>
-                        <input type="text" id="plan-location" data-target="basicInfo.plan-location">
-                        <label for="plan-manager">責任者:</label>
-                        <input type="text" id="plan-manager" data-target="basicInfo.plan-manager">
-                        <label for="plan-purpose">目的:</label>
-                        <textarea id="plan-purpose" rows="3" data-target="basicInfo.plan-purpose"></textarea>
-                        <label for="plan-goals">目標:</label>
-                        <textarea id="plan-goals" rows="3" data-target="basicInfo.plan-goals" placeholder="目標を改行して複数入力できます"></textarea>
-                    </div>
-                </fieldset>
+        <div id="view-main" class="view">
+            <div class="main-content">
+                <main class="editor-pane">
+                    <h2>入力フォーム</h2>
+                    <fieldset>
+                        <legend>1. 基本情報</legend>
+                        <div class="form-grid">
+                            <label for="plan-name">計画名:</label>
+                            <input type="text" id="plan-name" data-target="basicInfo.plan-name">
+                            <label for="plan-date">開始日時:</label>
+                            <input type="datetime-local" id="plan-date" data-target="basicInfo.plan-date">
+                            <label for="plan-duration">期間 (日数):</label>
+                            <input type="number" id="plan-duration" data-target="basicInfo.plan-duration" min="1" value="1">
+                            <label for="plan-location">場所:</label>
+                            <input type="text" id="plan-location" data-target="basicInfo.plan-location">
+                            <label for="plan-manager">責任者:</label>
+                            <input type="text" id="plan-manager" data-target="basicInfo.plan-manager">
+                            <label for="plan-purpose">目的:</label>
+                            <textarea id="plan-purpose" rows="3" data-target="basicInfo.plan-purpose"></textarea>
+                            <label for="plan-goals">目標:</label>
+                            <textarea id="plan-goals" rows="3" data-target="basicInfo.plan-goals" placeholder="目標を改行して複数入力できます"></textarea>
+                        </div>
+                        <div class="navigation-actions">
+                            <button id="goto-schedule-button" class="nav-button">詳細スケジュールを編集する →</button>
+                        </div>
+                    </fieldset>
+                    <fieldset>
+                        <legend>2. 持ち物リスト</legend>
+                        <div class="form-grid">
+                            <label for="items-personal">個人装備:</label>
+                            <textarea id="items-personal" class="items-input" data-item-type="personal" rows="5" placeholder="項目を改行して入力"></textarea>
+                            <label for="items-group">班装備:</label>
+                            <textarea id="items-group" class="items-input" data-item-type="group" rows="5" placeholder="項目を改行して入力"></textarea>
+                        </div>
+                    </fieldset>
+                    <fieldset>
+                        <legend>3. 会計報告</legend>
+                        <h3>収入の部</h3>
+                        <table id="income-table" class="dynamic-table accounting-table" data-type="budget.income">
+                            <thead><tr><th>項目</th><th>摘要</th><th>金額</th><th>操作</th></tr></thead>
+                            <tbody id="income-body"></tbody>
+                        </table>
+                        <button id="add-income-row" class="add-row-button">＋ 収入項目を追加</button>
+                        <h3 class="mt-1">支出の部</h3>
+                        <table id="expense-table" class="dynamic-table accounting-table" data-type="budget.expense">
+                            <thead><tr><th>項目</th><th>摘要</th><th>金額</th><th>操作</th></tr></thead>
+                            <tbody id="expense-body"></tbody>
+                        </table>
+                        <button id="add-expense-row" class="add-row-button">＋ 支出項目を追加</button>
+                    </fieldset>
+                    <fieldset>
+                        <legend>4. テンプレート</legend>
+                        <div class="template-controls">
+                            <select id="template-select"><option value="">テンプレートを選択...</option></select>
+                            <button id="load-template-button">読込</button>
+                            <button id="delete-template-button" class="danger">削除</button>
+                        </div>
+                        <div class="template-controls mt-1">
+                            <input type="text" id="template-name-input" placeholder="新しいテンプレート名を入力">
+                            <button id="save-template-button">現在の内容をテンプレートとして保存</button>
+                        </div>
+                    </fieldset>
+                </main>
+                <aside class="preview-pane">
+                    <h2>プレビュー</h2>
+                    <div id="preview-content" class="paper-a4"></div>
+                </aside>
+            </div>
+        </div>
 
-                <fieldset>
-                    <legend>2. 詳細スケジュール</legend>
-                    <div id="calendar"></div>
-                </fieldset>
-                
-                <fieldset>
-                    <legend>3. 持ち物リスト</legend>
-                    <div class="form-grid">
-                        <label for="items-personal">個人装備:</label>
-                        <textarea id="items-personal" class="items-input" data-item-type="personal" rows="5" placeholder="項目を改行して入力"></textarea>
-                        <label for="items-group">班装備:</label>
-                        <textarea id="items-group" class="items-input" data-item-type="group" rows="5" placeholder="項目を改行して入力"></textarea>
-                    </div>
-                </fieldset>
-
-                <fieldset>
-                    <legend>4. 会計報告</legend>
-                    <h3>収入の部</h3>
-                    <table id="income-table" class="dynamic-table accounting-table" data-type="budget.income">
-                        <thead><tr><th>項目</th><th>摘要</th><th>金額</th><th>操作</th></tr></thead>
-                        <tbody id="income-body"></tbody>
-                    </table>
-                    <button id="add-income-row" class="add-row-button">＋ 収入項目を追加</button>
-                    <h3 class="mt-1">支出の部</h3>
-                    <table id="expense-table" class="dynamic-table accounting-table" data-type="budget.expense">
-                        <thead><tr><th>項目</th><th>摘要</th><th>金額</th><th>操作</th></tr></thead>
-                        <tbody id="expense-body"></tbody>
-                    </table>
-                    <button id="add-expense-row" class="add-row-button">＋ 支出項目を追加</button>
-                </fieldset>
-
-                <fieldset>
-                    <legend>5. テンプレート</legend>
-                    <div class="template-controls">
-                        <select id="template-select"><option value="">テンプレートを選択...</option></select>
-                        <button id="load-template-button">読込</button>
-                        <button id="delete-template-button" class="danger">削除</button>
-                    </div>
-                    <div class="template-controls mt-1">
-                        <input type="text" id="template-name-input" placeholder="新しいテンプレート名を入力">
-                        <button id="save-template-button">現在の内容をテンプレートとして保存</button>
-                    </div>
-                </fieldset>
-            </main>
-
-            <aside class="preview-pane">
-                <h2>プレビュー</h2>
-                <div id="preview-content" class="paper-a4"></div>
-            </aside>
+        <div id="view-schedule" class="view">
+            <div class="schedule-header">
+                <h2>詳細スケジュールの編集</h2>
+                <button id="goto-main-button" class="nav-button">← メイン画面に戻る</button>
+            </div>
+            <div id="calendar"></div>
         </div>
     </div>
 
