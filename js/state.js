@@ -1,7 +1,6 @@
 const PLAN_DATA_KEY = 'planData-v1';
 const TEMPLATES_KEY = 'planTemplates-v1';
 
-// `export` を追加して、他のファイルからこの変数を参照できるようにする
 export let planData = {
     basicInfo: { 'plan-name': '（計画名）', 'plan-date': '', 'plan-location': '', 'plan-manager': '', 'plan-purpose': '', 'plan-goals': '' },
     schedule: [],
@@ -9,7 +8,6 @@ export let planData = {
     budget: { income: [], expense: [] }
 };
 
-// 各関数も `export` する
 export function saveState() {
     try {
         localStorage.setItem(PLAN_DATA_KEY, JSON.stringify(planData));
@@ -21,7 +19,6 @@ export function loadState() {
         const json = localStorage.getItem(PLAN_DATA_KEY);
         if (json) {
             const loadedData = JSON.parse(json);
-            // 読み込んだデータでplanDataを上書き
             planData = { ...planData, ...loadedData };
         }
     } catch (e) { console.error('データの読み込みに失敗しました。', e); }
