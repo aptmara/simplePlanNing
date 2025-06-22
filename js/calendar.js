@@ -114,26 +114,35 @@ function handleDeleteEvent() {
     }
 }
 
+// 【修正点】ドラッグ＆ドロップされたイベントのデータ形式を正しく扱うように修正
 function updateEvent(event) {
     const index = planData.schedule.findIndex(e => e.id === event.id);
+    
+    // 既存のextendedPropsを保持しつつ、新しい情報をマージする
+    const existingProps = (index > -1) ? planData.schedule[index].extendedProps : {};
+    const newProps = event.extendedProps || existingProps || {};
+
     const newEventData = {
         id: event.id,
         title: event.title,
-        start: event.start,
-        end: event.end,
-        extendedProps: event.extendedProps || {}
+        start: event.start ? new Date(event.start).toISOString() : null,
+        end: event.end ? new Date(event.end).toISOString() : null,
+        extendedProps: newProps
     };
+
     if (index > -1) {
         planData.schedule[index] = newEventData;
     } else {
         planData.schedule.push(newEventData);
     }
+    
     const eventInCalendar = calendar.getEventById(event.id);
     if (eventInCalendar) {
         eventInCalendar.remove();
     }
     calendar.addEvent(newEventData);
 }
+
 
 function formatDateTime(date) {
     if (!date) return '';

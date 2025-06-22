@@ -7,7 +7,6 @@ const expenseBody = document.getElementById('expense-body');
 export function renderPreview() {
     const { basicInfo, schedule, items, budget } = planData;
     let html = '';
-
     let formattedDate = '';
     if (basicInfo['plan-date']) { try { const date = new Date(basicInfo['plan-date']); const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0'); const h = String(date.getHours()).padStart(2, '0'); const min = String(date.getMinutes()).padStart(2, '0'); formattedDate = `${y}年${m}月${d}日 ${h}:${min}`; } catch(e) { formattedDate = '（日付形式エラー）'; } }
     const goalsHtml = (basicInfo.goals || '').split('\n').filter(g => g).map(goal => `<li>${goal}</li>`).join('');
@@ -15,11 +14,27 @@ export function renderPreview() {
     
     let scheduleTableHtml = `<table class="preview-table"><thead><tr><th>時間</th><th>項目</th><th>内容</th><th>配役</th><th>資材</th><th>留意事項</th></tr></thead><tbody>`;
     const sortedSchedule = [...(schedule || [])].sort((a, b) => new Date(a.start) - new Date(b.start));
+    
     sortedSchedule.forEach(event => {
         const start = new Date(event.start);
         const end = new Date(event.end);
-        const timeStr = `${start.getHours()}:${String(start.getMinutes()).padStart(2, '0')} - ${end.getHours()}:${String(end.getMinutes()).padStart(2, '0')}`;
-        scheduleTableHtml += `<tr><td>${timeStr}</td><td>${event.title || ''}</td><td>${(event.extendedProps.details || '').replace(/\n/g, '<br>')}</td><td>${event.extendedProps.cast || ''}</td><td>${event.extendedProps.materials || ''}</td><td>${(event.extendedProps.notes || '').replace(/\n/g, '<br>')}</td></tr>`;
+        const timeStr = (start && end && !isNaN(start) && !isNaN(end)) 
+            ? `${start.getHours()}:${String(start.getMinutes()).padStart(2, '0')} - ${end.getHours()}:${String(end.getMinutes()).padStart(2, '0')}`
+            : '時間未設定';
+        
+        // 【修正点】 extendedPropsが存在しない場合も考慮し、安全にアクセスする
+        const props = event.extendedProps || {};
+        
+        scheduleTableHtml += `
+            <tr>
+                <td>${timeStr}</td>
+                <td>${event.title || ''}</td>
+                <td>${(props.details || '').replace(/\n/g, '<br>')}</td>
+                <td>${props.cast || ''}</td>
+                <td>${props.materials || ''}</td>
+                <td>${(props.notes || '').replace(/\n/g, '<br>')}</td>
+            </tr>
+        `;
     });
     scheduleTableHtml += '</tbody></table>';
     html += `<div class="preview-section"><h2>4. 詳細スケジュール</h2>${scheduleTableHtml}</div>`;
