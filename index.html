@@ -3,189 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>計画ジェネレーター</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+    <title>計画書ジェネレーター</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/customParseFormat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/utc.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/timezone.js"></script>
-
 </head>
 <body>
-    <div id="notification-container"></div>
-
-    <header>
-        <div class="header-content">
-            <h1>計画ジェネレーター</h1>
-            <p>簡単な入力で、複数日にわたる計画書を作成します。</p>
-        </div>
-        <div class="theme-switcher">
-            <label for="theme-toggle" class="theme-switcher-label">
-                <svg class="sun-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="theme-toggle">
-                    <span class="slider"></span>
-                </div>
-                <svg class="moon-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-            </label>
-        </div>
-    </header>
-
-    <main class="container">
-        <div class="input-form-container no-print">
-            <h2>計画の情報を入力</h2>
-            <form id="planForm" novalidate>
-                <div class="form-group">
-                    <label for="planName">計画名:</label>
-                    <input type="text" id="planName" placeholder="例：夏のファミリーキャンプ" required>
-                    <div class="error-message" id="planNameError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="startDate">開始日:</label>
-                    <input type="date" id="startDate" required>
-                    <div class="error-message" id="startDateError"></div>
-                </div>
-                <div class="form-group">
-                    <label for="numberOfDays">日数:</label>
-                    <input type="number" id="numberOfDays" min="1" value="1" required>
-                    <div class="error-message" id="numberOfDaysError"></div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" id="main-action-button">計画を更新/作成</button>
-                    <button type="button" id="clearPlanButton" class="button-secondary">クリアして新規作成</button>
-                </div>
-            </form>
-        </div>
-
-        <div class="plan-display-area">
-            <div class="plan-header">
-                <h2 id="planOutputTitle">作成された計画</h2>
-                <div class="plan-actions no-print">
-                    <button id="categorySettingsButton" class="button-small">カテゴリ設定</button>
-                    <button id="copyPlanButton" class="button-small">テキストコピー</button>
-                    <button id="exportJsonButton" class="button-small">JSONでエクスポート</button>
-                    <button id="exportCsvButton" class="button-small">Excelでエクスポート</button>
-                    <button id="exportPdfButton" class="button-small">PDFとして保存</button>
-                    <button id="undoButton" class="button-small" title="元に戻す (Ctrl+Z)" disabled>↩️ 元に戻す</button>
-                    <button id="redoButton" class="button-small" title="やり直し (Ctrl+Y)" disabled>↪️ やり直す</button>
-                    <button id="printPlanButton" class="button-small">印刷</button>
-                </div>
+    <div class="container">
+        <header>
+            <h1>計画書ジェネレーター</h1>
+            <div class="controls">
+                <button id="print-button" title="印刷する">印刷</button>
+                <button id="save-button" title="データをブラウザに保存する">保存</button>
+                <button id="clear-button" title="全ての入力データを消去する">全消去</button>
             </div>
-            <div id="planOutput">
-                <p class="placeholder">ここに入力内容から作成された計画が表示されます。</p>
-            </div>
-        </div>
+        </header>
+        <div class="main-content">
+            <main class="editor-pane">
+                <h2>入力フォーム</h2>
 
-        <div id="summaryArea" class="summary-container no-print">
-            <h3>計画サマリー</h3>
-            <div class="summary-content">
-                <div class="summary-chart-container">
-                    <canvas id="categoryPieChart"></canvas>
-                </div>
-                <div id="summaryListContainer" class="summary-list-container">
+                <fieldset>
+                    <legend>1. 基本情報</legend>
+                    <div class="form-grid">
+                        <label for="plan-name">計画名:</label>
+                        <input type="text" id="plan-name" data-target="basicInfo.plan-name">
+                        <label for="plan-date">日時:</label>
+                        <input type="datetime-local" id="plan-date" data-target="basicInfo.plan-date">
+                        <label for="plan-location">場所:</label>
+                        <input type="text" id="plan-location" data-target="basicInfo.plan-location">
+                        <label for="plan-manager">責任者:</label>
+                        <input type="text" id="plan-manager" data-target="basicInfo.plan-manager">
+                        <label for="plan-purpose">目的:</label>
+                        <textarea id="plan-purpose" rows="3" data-target="basicInfo.plan-purpose"></textarea>
+                        <label for="plan-goals">目標:</label>
+                        <textarea id="plan-goals" rows="3" data-target="basicInfo.plan-goals" placeholder="目標を改行して複数入力できます"></textarea>
                     </div>
-            </div>
-            <div id="summaryTotalTimeContainer" class="summary-total-time">
-                </div>
-        </div>
-    </main>
+                </fieldset>
 
-    <footer class="no-print">
-        <p>Generated by AI Project Planner</p>
-        <div id="save-status"></div>
-    </footer>
+                <fieldset>
+                    <legend>2. 詳細スケジュール</legend>
+                    <table id="schedule-table" class="dynamic-table">
+                        <thead>
+                            <tr><th>時間</th><th>項目</th><th>内容</th><th>配役</th><th>資材</th><th>留意事項</th><th>操作</th></tr>
+                        </thead>
+                        <tbody id="schedule-body"></tbody>
+                    </table>
+                    <button id="add-schedule-row" class="add-row-button">＋ スケジュール行を追加</button>
+                </fieldset>
 
-    <div id="editModal" class="modal-overlay no-print">
-        <div class="modal-content">
-            <h2>アクティビティの編集</h2>
-            <div class="form-group">
-                <label for="modalActivityName">アクティビティ名:</label>
-                <input type="text" id="modalActivityName" required>
-            </div>
-    
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="form-group">
-                    <label for="modalStartDate">開始日:</label>
-                    <input type="date" id="modalStartDate" required>
-                </div>
-                <div class="form-group">
-                    <label for="modalStartTime">開始時刻:</label>
-                    <input type="time" id="modalStartTime" required>
-                </div>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="form-group">
-                    <label for="modalEndDate">終了日:</label>
-                    <input type="date" id="modalEndDate" required>
-                </div>
-                <div class="form-group">
-                    <label for="modalEndTime">終了時刻:</label>
-                    <input type="time" id="modalEndTime" required>
-                </div>
-            </div>
-            <div class="error-message" id="modalDateTimeError"></div>
-    
-            <div class="form-group">
-                <label for="modalActivityCategory">カテゴリ:</label>
-                <select id="modalActivityCategory"></select>
-            </div>
-    
-            <div class="form-group">
-                <label for="modalActivityNotes">メモ (任意):</label>
-                <textarea id="modalActivityNotes" rows="4"></textarea>
-            </div>
-            
-            <div class="form-group form-group-checkbox">
-                <input type="checkbox" id="modalAllowOverlap" style="width: auto;">
-                <label for="modalAllowOverlap">このアクティビティの重複を許可する</label>
-            </div>
-    
-            <div class="modal-actions">
-                <button id="saveModalButton">保存</button>
-                <button id="deleteModalButton" class="button-danger">削除</button>
-                <button id="closeModalButton" class="button-secondary">キャンセル</button>
-            </div>
-        </div>
-    </div>
-    
+                <fieldset>
+                    <legend>3. 持ち物リスト</legend>
+                    <div class="form-grid">
+                        <label for="items-personal">個人装備:</label>
+                        <textarea id="items-personal" class="items-input" data-item-type="personal" rows="5" placeholder="項目を改行して入力"></textarea>
+                        <label for="items-group">班装備:</label>
+                        <textarea id="items-group" class="items-input" data-item-type="group" rows="5" placeholder="項目を改行して入力"></textarea>
+                    </div>
+                </fieldset>
 
-    <div id="categoryModal" class="modal-overlay no-print">
-        <div class="modal-content">
-            <h2>カテゴリ設定</h2>
-            <div id="categoryListContainer">
-                </div>
-            <div class="form-group" id="addCategoryForm">
-                <h3>新しいカテゴリを追加</h3>
-                <label for="newCategoryName">カテゴリ名:</label>
-                <input type="text" id="newCategoryName" placeholder="例: 重要タスク">
-                <label for="newCategoryColor">色:</label>
-                <input type="color" id="newCategoryColor" value="#3498db">
-                <button id="addCategoryButton" type="button" style="margin-top: 10px;">追加</button>
-            </div>
-            <div class="modal-actions">
-                <button id="saveCategoriesButton">設定を保存</button>
-                <button id="closeCategoryModalButton" class="button-secondary">キャンセル</button>
-            </div>
+                <fieldset>
+                    <legend>4. 会計報告</legend>
+                    
+                    <h3>収入の部</h3>
+                    <table id="income-table" class="dynamic-table accounting-table">
+                        <thead>
+                            <tr><th>項目</th><th>摘要</th><th>金額</th><th>操作</th></tr>
+                        </thead>
+                        <tbody id="income-body"></tbody>
+                    </table>
+                    <button id="add-income-row" class="add-row-button">＋ 収入項目を追加</button>
+
+                    <h3 class="mt-1">支出の部</h3>
+                    <table id="expense-table" class="dynamic-table accounting-table">
+                        <thead>
+                            <tr><th>項目</th><th>摘要</th><th>金額</th><th>操作</th></tr>
+                        </thead>
+                        <tbody id="expense-body"></tbody>
+                    </table>
+                    <button id="add-expense-row" class="add-row-button">＋ 支出項目を追加</button>
+                </fieldset>
+                
+                <fieldset>
+                    <legend>5. テンプレート</legend>
+                    <div class="template-controls">
+                        <select id="template-select">
+                            <option value="">テンプレートを選択...</option>
+                        </select>
+                        <button id="load-template-button">読込</button>
+                        <button id="delete-template-button" class="danger">削除</button>
+                    </div>
+                    <div class="template-controls mt-1">
+                        <input type="text" id="template-name-input" placeholder="新しいテンプレート名を入力">
+                        <button id="save-template-button">現在の内容をテンプレートとして保存</button>
+                    </div>
+                </fieldset>
+
+            </main>
+            <aside class="preview-pane">
+                <h2>プレビュー</h2>
+                <div id="preview-content" class="paper-a4"></div>
+            </aside>
         </div>
     </div>
-
-
-    <div id="dropZoneOverlay" class="drop-zone-overlay no-print">
-        <div class="drop-zone-message">
-            計画ファイル（.json）をここにドロップして読み込み
-        </div>
-    </div>
-    
-    <script type="module" src="js/main.js"></script>
+    <script src="./js/state.js"></script>
+    <script src="./js/ui.js"></script>
+    <script src="./js/handlers.js"></script>
+    <script src="./js/main.js"></script>
 </body>
 </html>
